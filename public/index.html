@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>YT Clip Cutter</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Clip Cutter" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f0f;
+      --surface: #1c1c1c;
+      --surface2: #282828;
+      --border: rgba(255,255,255,0.09);
+      --text: #f0f0f0;
+      --muted: #888;
+      --accent: #ff0000;
+      --green: #22c55e;
+      --r: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px 64px;
+    }
+
+    .wrap { width: 100%; max-width: 420px; }
+
+    header { text-align: center; margin-bottom: 32px; }
+    header .icon { font-size: 48px; line-height: 1; margin-bottom: 12px; }
+    header h1 { font-size: 24px; font-weight: 700; }
+    header p { font-size: 14px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 20px;
+      margin-bottom: 12px;
+    }
+
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+
+    input[type="url"] {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 15px;
+      padding: 13px 14px;
+      outline: none;
+      -webkit-appearance: none;
+      transition: border-color 0.15s;
+    }
+    input[type="url"]:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      margin-top: 12px;
+      transition: opacity 0.15s, transform 0.1s;
+      text-align: center;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-red { background: var(--accent); color: #fff; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      font-size: 14px;
+    }
+
+    .status-card { text-align: center; padding: 28px 20px; }
+    .status-card .emoji { font-size: 36px; margin-bottom: 12px; }
+    .status-card h2 { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+    .status-card p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    .progress-bg {
+      height: 5px;
+      background: var(--surface2);
+      border-radius: 99px;
+      overflow: hidden;
+      margin: 16px 0 8px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+    .progress-label { font-size: 13px; color: var(--muted); }
+
+    .meta {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .meta-box {
+      flex: 1;
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+    .meta-box .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .meta-box .val { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    .err {
+      background: rgba(255,0,0,0.08);
+      border: 1px solid rgba(255,0,0,0.2);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #ff6b6b;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .hidden { display: none !important; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block;
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="icon">✂️</div>
+    <h1>YT Clip Cutter</h1>
+    <p>Paste a YouTube link → get a random 20–30 second clip → download to your phone</p>
+  </header>
+
+  <!-- Input -->
+  <div class="card" id="inputCard">
+    <label for="urlInput">YouTube URL</label>
+    <input type="url" id="urlInput" placeholder="https://youtube.com/watch?v=..." autocomplete="off" autocorrect="off" spellcheck="false" inputmode="url" />
+    <div class="err" id="inputErr"></div>
+    <button class="btn btn-red" id="goBtn" onclick="getClip()">Get random clip</button>
+  </div>
+
+  <!-- Loading -->
+  <div class="card status-card hidden" id="loadingCard">
+    <div class="emoji">⏳</div>
+    <h2 id="loadingTitle">Getting your clip…</h2>
+    <div class="progress-bg"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">Starting up</div>
+  </div>
+
+  <!-- Done -->
+  <div class="card hidden" id="doneCard">
+    <div class="meta" id="metaRow"></div>
+    <button class="btn btn-green" id="dlBtn">⬇️ Save to phone</button>
+    <button class="btn btn-ghost" onclick="reset()" style="margin-top:8px">Get another clip</button>
+  </div>
+
+  <div class="err" id="globalErr" style="margin-top:0"></div>
+</div>
+
+<script>
+  let clipBlob = null;
+  let clipName = 'clip.mp4';
+
+  function ts(sec) {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s.toString().padStart(2,'0')}`;
+  }
+
+  function setProgress(pct, label) {
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = label;
+  }
+
+  function showErr(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function hideErr(id) {
+    document.getElementById(id).style.display = 'none';
+  }
+
+  async function getClip() {
+    hideErr('inputErr');
+    hideErr('globalErr');
+
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url || (!url.includes('youtube.com') && !url.includes('youtu.be'))) {
+      return showErr('inputErr', 'Please paste a valid YouTube URL.');
+    }
+
+    // Show loading
+    document.getElementById('inputCard').classList.add('hidden');
+    document.getElementById('doneCard').classList.add('hidden');
+    document.getElementById('loadingCard').classList.remove('hidden');
+    setProgress(10, 'Fetching video info…');
+
+    try {
+      // Fake progress steps while waiting
+      const steps = [
+        [25, 'Locating best quality…'],
+        [45, 'Downloading section…'],
+        [70, 'Cutting clip…'],
+        [88, 'Encoding for Instagram…'],
+      ];
+      let stepIndex = 0;
+      const ticker = setInterval(() => {
+        if (stepIndex < steps.length) {
+          setProgress(...steps[stepIndex]);
+          stepIndex++;
+        }
+      }, 4000);
+
+      const res = await fetch('/.netlify/functions/clip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+
+      clearInterval(ticker);
+      setProgress(95, 'Almost done…');
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      // Decode base64 → blob
+      const binary = atob(data.clip);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      clipBlob = new Blob([bytes], { type: 'video/mp4' });
+
+      setProgress(100, 'Done!');
+
+      // Build filename
+      const videoId = url.match(/(?:v=|youtu\.be\/)([^&?/]+)/)?.[1] || 'video';
+      clipName = `clip-${videoId}-${data.startSec}s.mp4`;
+
+      // Show result
+      setTimeout(() => showDone(data), 400);
+
+    } catch (e) {
+      document.getElementById('loadingCard').classList.add('hidden');
+      document.getElementById('inputCard').classList.remove('hidden');
+      showErr('globalErr', '⚠️ ' + e.message);
+    }
+  }
+
+  function showDone(data) {
+    document.getElementById('loadingCard').classList.add('hidden');
+    const done = document.getElementById('doneCard');
+    done.classList.remove('hidden');
+
+    const mb = (data.size / 1024 / 1024).toFixed(1);
+    document.getElementById('metaRow').innerHTML = `
+      <div class="meta-box"><div class="lbl">Start</div><div class="val">${ts(data.startSec)}</div></div>
+      <div class="meta-box"><div class="lbl">Duration</div><div class="val">${data.clipDuration}s</div></div>
+      <div class="meta-box"><div class="lbl">Size</div><div class="val">${mb}MB</div></div>
+    `;
+
+    document.getElementById('dlBtn').onclick = () => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(clipBlob);
+      a.download = clipName;
+      a.click();
+    };
+  }
+
+  function reset() {
+    clipBlob = null;
+    document.getElementById('doneCard').classList.add('hidden');
+    document.getElementById('inputCard').classList.remove('hidden');
+    hideErr('globalErr');
+  }
+
+  document.getElementById('urlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') getClip();
+  });
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js');
+  }
+</script>
+</body>
+</html>

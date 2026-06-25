@@ -1,0 +1,11 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+  command = "node scripts/setup.js"
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["bin/**"]
+
+[functions.clip]
+  timeout = 300

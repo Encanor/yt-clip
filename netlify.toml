@@ -5,7 +5,7 @@
 
 [functions]
   node_bundler = "esbuild"
-  included_files = ["bin/**"]
+  included_files = ["bin/yt-dlp", "bin/ffmpeg", "bin/ffprobe"]
 
 [functions.clip]
   timeout = 300
